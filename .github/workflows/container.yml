@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Prepare
       id: prep
@@ -44,6 +46,15 @@ jobs:
           echo "cache_to=\"type=registry,ref=${REGISTRY_IMAGE}:buildcache,mode=max\"" >> $GITHUB_OUTPUT
         fi
         echo "github_server_url=\"${GITHUB_SERVER_URL}\"" >> $GITHUB_OUTPUT
+
+    - name: Install setuptools-scm and tomli
+      run: pip install setuptools-scm[toml]>=8 tomli
+
+    - name: Generate static version.json
+      run: python freeze_version.py
+
+    - name: Generate requirements hashFiles
+      run: python generate_requirements.py
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
