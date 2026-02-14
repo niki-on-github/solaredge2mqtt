@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import traceback
 from typing import TYPE_CHECKING
 
 from solaredge2mqtt.core.events import EventBus
 from solaredge2mqtt.core.exceptions import InvalidDataException
+from solaredge2mqtt.core.logging import logger
 from solaredge2mqtt.core.mqtt.events import MQTTPublishEvent
 from solaredge2mqtt.services.weather.events import WeatherUpdateEvent
 from solaredge2mqtt.services.weather.providers import (
@@ -57,11 +59,9 @@ class WeatherService:
             try:
                 await self._fetch_and_publish()
             except Exception as e:
-                # Log error but continue polling
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error fetching weather data: {e}")
+                logger.error(
+                    f"Error fetching weather data: {e}\n{traceback.format_exc()}"
+                )
             await asyncio.sleep(interval_seconds)
 
     async def _fetch_and_publish(self):

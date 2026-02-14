@@ -154,9 +154,6 @@ class METNorwayProvider(WeatherProvider, HTTPClientAsync):
                     params={
                         "lat": self.location.latitude,
                         "lon": self.location.longitude,
-                        "altitude": int(self.settings.location.altitude)
-                        if hasattr(self.settings.location, "altitude")
-                        else None,
                     },
                     headers=self._get_headers(),
                 )
@@ -242,7 +239,7 @@ class METNorwayProvider(WeatherProvider, HTTPClientAsync):
             return WeatherData(
                 latitude=lat,
                 longitude=lon,
-                timestamp=parse_timestamp(time),
+                dt=parse_timestamp(time),
                 temperature=instant.get("air_temperature"),
                 feels_like=None,  # Not available in MET API
                 dew_point=instant.get("dew_point_temperature"),
