@@ -101,8 +101,13 @@ prices:
 
 # Weather configuration (optional, requires location)
 # weather:
-#   api_key: !secret weather_api_key  # Reference to secrets.yml
+#   provider: openweathermap          # Weather provider: openweathermap (default) or metno
+#   api_key: !secret weather_api_key  # Required for openweathermap (reference to secrets.yml)
 #   language: en
+#   # For MET Norway (metno) provider:
+#   # metno:
+#   #   user_agent: "your-app/1.0"    # Optional: identify your application to metno API
+#   interval: 10                      # Weather API polling interval in minutes (default: 10, min: 1)
 #   retain: false
 
 # Forecast configuration (optional, requires weather and InfluxDB)

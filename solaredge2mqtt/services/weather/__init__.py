@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from solaredge2mqtt.core.events import EventBus
 from solaredge2mqtt.core.exceptions import InvalidDataException
 from solaredge2mqtt.core.mqtt.events import MQTTPublishEvent
-from solaredge2mqtt.core.timer.events import Interval10MinTriggerEvent
 from solaredge2mqtt.services.weather.events import WeatherUpdateEvent
 from solaredge2mqtt.services.weather.providers import (
     METNorwayProvider,
@@ -28,7 +28,7 @@ class WeatherService:
         self.settings = settings.weather
         self.event_bus = event_bus
         self.provider = self._create_provider(settings)
-        self._subscribe_events()
+        self._task: asyncio.Task | None = None
 
     def _create_provider(self, settings: ServiceSettings) -> WeatherProvider:
         """Factory method to create the appropriate provider."""
@@ -41,10 +41,31 @@ class WeatherService:
                 f"Unknown weather provider: {self.settings.provider}"
             )
 
-    def _subscribe_events(self):
-        self.event_bus.subscribe(Interval10MinTriggerEvent, self.loop)
+    def start(self):
+        """Start the weather polling loop."""
+        self._task = asyncio.create_task(self._run_loop())
 
-    async def loop(self, _):
+    def stop(self):
+        """Stop the weather polling loop."""
+        if self._task and not self._task.done():
+            self._task.cancel()
+
+    async def _run_loop(self):
+        """Run the weather polling loop with configurable interval."""
+        interval_seconds = self.settings.interval * 60
+        while True:
+            try:
+                await self._fetch_and_publish()
+            except Exception as e:
+                # Log error but continue polling
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error fetching weather data: {e}")
+            await asyncio.sleep(interval_seconds)
+
+    async def _fetch_and_publish(self):
+        """Fetch weather data and publish events."""
         weather = await self.provider.fetch_weather()
         await self.event_bus.emit(WeatherUpdateEvent(weather))
         await self.event_bus.emit(

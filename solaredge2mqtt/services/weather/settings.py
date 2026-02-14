@@ -1,7 +1,13 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, SecretStr, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 
 
 class WeatherProviderEnum(str, Enum):
@@ -50,7 +56,19 @@ class WeatherSettings(BaseModel):
     metno: METNorwaySettings = Field(default_factory=METNorwaySettings)
 
     # Common settings
+    interval: int = Field(
+        10,
+        description="Weather API polling interval in minutes (default: 10, min: 1)",
+    )
     retain: bool = Field(False)
+
+    @field_validator("interval")
+    @classmethod
+    def validate_interval(cls, value: int) -> int:
+        """Validate that interval is at least 1 minute."""
+        if value < 1:
+            raise ValueError("Weather interval must be at least 1 minute")
+        return value
 
     @model_validator(mode="after")
     def validate_provider_config(self) -> "WeatherSettings":

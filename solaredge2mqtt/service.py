@@ -62,8 +62,9 @@ class Service:
         self._run_task: asyncio.Task | None = None
 
         self.influxdb: InfluxDBAsync | None = (
-            InfluxDBAsync(self.settings.influxdb,
-                          self.settings.prices, self.event_bus)
+            InfluxDBAsync(
+                self.settings.influxdb, self.settings.prices, self.event_bus
+            )
             if self.settings.is_influxdb_configured
             else None
         )
@@ -75,11 +76,13 @@ class Service:
         )
 
         self.powerflow = PowerflowService(
-            self.settings, self.event_bus, self.influxdb)
+            self.settings, self.event_bus, self.influxdb
+        )
 
         self.monitoring: MonitoringSite | None = (
-            MonitoringSite(self.settings.monitoring,
-                           self.event_bus, self.influxdb)
+            MonitoringSite(
+                self.settings.monitoring, self.event_bus, self.influxdb
+            )
             if self.settings.is_monitoring_configured
             else None
         )
@@ -104,7 +107,8 @@ class Service:
             )
         elif self.settings.is_forecast_configured:
             logger.warning(
-                "Forecast service not available, please refer to README")
+                "Forecast service not available, please refer to README"
+            )
 
         self.homeassistant: HomeAssistantDiscovery | None = (
             HomeAssistantDiscovery(self.settings, self.event_bus)
@@ -166,6 +170,9 @@ class Service:
 
                     await self.powerflow.async_init()
 
+                    if self.weather is not None:
+                        self.weather.start()
+
                     self._start_mqtt_listener()
                     self.schedule_loop(1, self.timer.loop)
 
@@ -199,13 +206,14 @@ class Service:
     async def finalize(self):
         await self._stop_loops()
 
+        if self.weather is not None:
+            self.weather.stop()
+
         if self.mqtt is not None:
             try:
                 await self.mqtt.publish_status_offline()
             except MqttError:
-                logger.debug(
-                    "Unable to publish offline status during cleanup"
-                )
+                logger.debug("Unable to publish offline status during cleanup")
             finally:
                 self.mqtt = None
 
@@ -276,8 +284,9 @@ class Service:
                         if service
                     ]
                 ),
-                timeout=5
+                timeout=5,
             )
         except asyncio.TimeoutError:
             logger.warning(
-                "Timeout while closing tasks, proceeding with shutdown.")
+                "Timeout while closing tasks, proceeding with shutdown."
+            )

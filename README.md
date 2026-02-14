@@ -342,12 +342,16 @@ prices:
 
 ### Weather
 
-Integrate real-time weather data from OpenWeatherMap:
+Integrate real-time weather data from supported providers.
+
+#### OpenWeatherMap
 
 ```yaml
 weather:
-  api_key: !secret weather_api_key  # OpenWeatherMap API key (store in secrets.yml)
-  language: en                       # Language for weather data (default: en)
+  provider: openweathermap            # Weather provider (default: openweathermap)
+  api_key: !secret weather_api_key    # OpenWeatherMap API key (store in secrets.yml)
+  language: en                         # Language for weather data (default: en)
+  interval: 10                         # Polling interval in minutes (default: 10, min: 1)
   retain: false
 ```
 
@@ -358,6 +362,21 @@ weather_api_key: "your_openweathermap_api_key"
 ```
 
 To access weather data, you need an OpenWeatherMap account, an API key, and a [subscription](https://home.openweathermap.org/subscriptions) to the One-Call API. Visit [OpenWeatherMap](https://openweathermap.org/) for more information.
+
+#### MET Norway (metno)
+
+MET Norway provides free weather data without requiring an API key.
+
+```yaml
+weather:
+  provider: metno                     # Use MET Norway as provider
+  metno:
+    user_agent: "your-app/1.0"       # Optional: identify your application
+  interval: 10                         # Polling interval in minutes (default: 10, min: 1)
+  retain: false
+```
+
+The `user_agent` is optional but recommended to identify your application to MET Norway's API. Visit [MET Norway API](https://api.met.no/) for more information.
 
 ### Forecast
 
