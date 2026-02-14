@@ -148,6 +148,15 @@ class ForecastService:
 
     async def train(self) -> None:
         data = await self.influxdb.query_dataframe("training_data")
+
+        # Check if we have training data
+        if data.empty or "_time" not in data.columns:
+            logger.warning(
+                "No training data available in InfluxDB. "
+                "Forecast training will be skipped until sufficient data is collected."
+            )
+            return
+
         data["time"] = data["_time"].dt.tz_convert(LOCAL_TZ)
         await to_thread(self.training, data)
 

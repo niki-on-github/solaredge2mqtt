@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import traceback
 from typing import TYPE_CHECKING
 
 from solaredge2mqtt.core.events import EventBus
@@ -58,10 +57,8 @@ class WeatherService:
         while True:
             try:
                 await self._fetch_and_publish()
-            except Exception as e:
-                logger.error(
-                    f"Error fetching weather data: {e}\n{traceback.format_exc()}"
-                )
+            except Exception:
+                logger.exception("Error fetching weather data")
             await asyncio.sleep(interval_seconds)
 
     async def _fetch_and_publish(self):

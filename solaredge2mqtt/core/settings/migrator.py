@@ -239,7 +239,7 @@ class ConfigurationMigrator:
         key, idx, next_container = self._get_or_initialize_nested_container(
             container, key, i
         )
-        
+
         # Insert value or recurse deeper
         if len(keys) == 1:
             self._set_final_value(container, key, idx, value)
@@ -491,10 +491,8 @@ class ConfigurationMigrator:
                 f"{config_file}: {e}"
             )
             raise
-        except Exception as e:
-            logger.error(
-                f"Error writing configuration file {config_file}: {e}"
-            )
+        except Exception:
+            logger.exception(f"Error writing configuration file {config_file}")
             raise
 
         if secrets_data:
@@ -520,6 +518,6 @@ class ConfigurationMigrator:
                     f"{secrets_file}: {e}"
                 )
                 raise
-            except Exception as e:
-                logger.error(f"Error writing secrets file {secrets_file}: {e}")
+            except Exception:
+                logger.exception(f"Error writing secrets file {secrets_file}")
                 raise

@@ -69,7 +69,8 @@ class EventBus:
             await self._notify_listeners(event, listeners)
         else:
             task = asyncio.create_task(
-                self._notify_listeners(event, listeners))
+                self._notify_listeners(event, listeners)
+            )
             self._tasks.add(task)
             task.add_done_callback(self._handle_task_done)
 
@@ -77,22 +78,27 @@ class EventBus:
         self, event: BaseEvent, listeners: list[Listener]
     ) -> None:
         results = await asyncio.gather(
-            *(self._notify_listener(listener, event)
-              for listener in listeners),
+            *(
+                self._notify_listener(listener, event)
+                for listener in listeners
+            ),
             return_exceptions=True,
         )
         for r in results:
             if isinstance(r, (asyncio.CancelledError, MqttError)):
                 raise r
             elif isinstance(r, Exception):
-                logger.error("Unhandled listener error: {exc}", exc=repr(r))
+                logger.opt(exception=r).error("Unhandled listener error")
 
-    async def _notify_listener(self, listener: Listener, event: BaseEvent) -> None:
+    async def _notify_listener(
+        self, listener: Listener, event: BaseEvent
+    ) -> None:
         try:
             await listener(event)
         except InvalidDataException as error:
-            logger.warning("{message}, skipping this loop",
-                           message=error.message)
+            logger.warning(
+                "{message}, skipping this loop", message=error.message
+            )
 
     def _handle_task_done(self, task: asyncio.Task) -> None:
         self._tasks.discard(task)
@@ -114,7 +120,7 @@ class EventBus:
                 )
             return
 
-        logger.error("Unhandled listener error: {exc}", exc=repr(exc))
+        logger.opt(exception=exc).error("Unhandled listener error")
 
     async def cancel_tasks(self) -> None:
         tasks = list(self._tasks)

@@ -30,7 +30,10 @@ class MQTTClient(Client):
         )
 
         will = Will(
-            topic=f"{self.topic_prefix}/status", payload="offline", qos=1, retain=True
+            topic=f"{self.topic_prefix}/status",
+            payload="offline",
+            qos=1,
+            retain=True,
         )
 
         self._subscribed_topics: dict[str, type[BaseInputField]] = {}
@@ -79,7 +82,8 @@ class MQTTClient(Client):
                     self._received_message_queue.put_nowait(message)
                 except QueueFull:
                     logger.warning(
-                        "MQTT processing queue full – dropping message")
+                        "MQTT processing queue full – dropping message"
+                    )
 
     async def process_queue(self) -> None:
         if self._subscribed_topics:
@@ -87,8 +91,8 @@ class MQTTClient(Client):
                 message = await self._received_message_queue.get()
                 try:
                     await self._handle_message(message)
-                except Exception as ex:
-                    logger.error(f"Error while processing MQTT message: {ex}")
+                except Exception:
+                    logger.exception("Error while processing MQTT message")
 
     async def _handle_message(self, message: Message) -> None:
         topic = str(message.topic)
@@ -96,7 +100,8 @@ class MQTTClient(Client):
             model = self._subscribed_topics.get(topic)
             if not model:
                 logger.warning(
-                    f"Received message for unexpected topic: {topic}")
+                    f"Received message for unexpected topic: {topic}"
+                )
                 return
 
             payload = message.payload.decode()
@@ -111,9 +116,7 @@ class MQTTClient(Client):
             else:
                 parsed_input = model(input_raw)
 
-            await self.event_bus.emit(
-                MQTTReceivedEvent(topic, parsed_input)
-            )
+            await self.event_bus.emit(MQTTReceivedEvent(topic, parsed_input))
         except (ValidationError, json.JSONDecodeError, TypeError) as ex:
             logger.warning(
                 f"Received invalid message on topic: {topic}, error: {ex}"

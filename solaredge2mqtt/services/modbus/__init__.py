@@ -404,9 +404,8 @@ class Modbus:
                         )
                     )
 
-            except ModbusException as error:
-                logger.debug(f"Modbus read exception: {error}")
-                logger.error(f"Unreadable register {address_start}")
+            except ModbusException:
+                logger.exception(f"Unreadable register {address_start}")
                 self._block_register(address_start)
 
         return data
@@ -526,6 +525,5 @@ class Modbus:
                     device_id=self.settings.unit,
                 )
 
-        except ModbusException as error:
-            logger.debug(f"Modbus write exception: {error}")
-            logger.error(f"Unwriteable register {register.address}")
+        except ModbusException:
+            logger.exception(f"Unwriteable register {register.address}")
