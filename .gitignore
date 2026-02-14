@@ -172,3 +172,5 @@ version.json
 
 requirements.txt
 requirements-armv7.txt
+.nix-portable
+

@@ -13,7 +13,11 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.inspection import permutation_importance
-from sklearn.model_selection import GridSearchCV, TimeSeriesSplit, train_test_split
+from sklearn.model_selection import (
+    GridSearchCV,
+    TimeSeriesSplit,
+    train_test_split,
+)
 from sklearn.pipeline import Pipeline
 from tzlocal import get_localzone_name
 
@@ -33,7 +37,7 @@ from solaredge2mqtt.services.forecast.events import ForecastEvent
 from solaredge2mqtt.services.forecast.models import Forecast, ForecasterType
 from solaredge2mqtt.services.forecast.settings import ForecastSettings
 from solaredge2mqtt.services.weather.events import WeatherUpdateEvent
-from solaredge2mqtt.services.weather.models import OpenWeatherMapForecastData
+from solaredge2mqtt.services.weather.models import WeatherData
 
 if TYPE_CHECKING:
     from solaredge2mqtt.core.settings.models import LocationSettings
@@ -62,9 +66,8 @@ class ForecastService:
             for typed in ForecasterType
         }
 
-        self.last_weather_forecast: list[OpenWeatherMapForecastData] | None = None
-        self.last_hour_forecast: dict[int,
-                                      OpenWeatherMapForecastData] | None = None
+        self.last_weather_forecast: list[WeatherData] | None = None
+        self.last_hour_forecast: dict[int, WeatherData] | None = None
 
     def _subscribe_events(self) -> None:
         self.event_bus.subscribe(WeatherUpdateEvent, self.weather_update)
@@ -76,7 +79,9 @@ class ForecastService:
         if self.last_hour_forecast is None:
             self.last_hour_forecast = {}
 
-        self.last_hour_forecast[event.weather.hourly[0].hour] = event.weather.hourly[0]
+        self.last_hour_forecast[event.weather.hourly[0].hour] = (
+            event.weather.hourly[0]
+        )
 
         now = datetime.now().astimezone()
         last_hour = now - timedelta(hours=1)
@@ -90,14 +95,17 @@ class ForecastService:
         logger.debug(self.last_hour_forecast)
 
         if last_hour.hour in self.last_hour_forecast:
-            await self.write_new_training_data(self.last_hour_forecast[last_hour.hour])
+            await self.write_new_training_data(
+                self.last_hour_forecast[last_hour.hour]
+            )
 
     async def write_new_training_data(
-        self, last_hour_weather_forecast: OpenWeatherMapForecastData
+        self, last_hour_weather_forecast: WeatherData
     ) -> None:
         now = datetime.now().astimezone()
-        last_hour = now.replace(
-            minute=0, second=0, microsecond=0) - timedelta(hours=1)
+        last_hour = now.replace(minute=0, second=0, microsecond=0) - timedelta(
+            hours=1
+        )
 
         training_data = last_hour_weather_forecast.model_dump_estimation_data()
         training_data["time"] = last_hour
@@ -202,16 +210,19 @@ class ForecastService:
         forecast_data = await self.influxdb.query_dataframe("forecast")
         if not forecast_data.empty:
             forecast_data["time"] = forecast_data["_time"].dt.tz_convert(
-                LOCAL_TZ)
+                LOCAL_TZ
+            )
             power_hours = {
-                row["time"]: row["power"] for idx, row in forecast_data.iterrows()
+                row["time"]: row["power"]
+                for idx, row in forecast_data.iterrows()
             }
             energy_hours = {
                 row["time"]: round(row["energy"] * 1000)
                 for idx, row in forecast_data.iterrows()
             }
-            forecast = Forecast(power_period=power_hours,
-                                energy_period=energy_hours)
+            forecast = Forecast(
+                power_period=power_hours, energy_period=energy_hours
+            )
             logger.debug(forecast)
 
             await self.event_bus.emit(
@@ -252,7 +263,7 @@ class Forecaster:
         self,
         typed: ForecasterType,
         location: LocationSettings,
-        settings: ForecastSettings
+        settings: ForecastSettings,
     ) -> None:
         self.typed: ForecasterType = typed
         self.location = location
@@ -285,7 +296,8 @@ class Forecaster:
 
         if self.enable_hyperparameter_tuning:
             self.model_pipeline = self._hyperparametertuning(
-                data, y_vector, pipeline)
+                data, y_vector, pipeline
+            )
         else:
             self.model_pipeline = pipeline
 
@@ -330,10 +342,12 @@ class Forecaster:
         grid_search.fit(data, y_vector)
 
         logger.info(
-            "Training with best parameters: {params}", params=grid_search.best_params_
+            "Training with best parameters: {params}",
+            params=grid_search.best_params_,
         )
         logger.info(
-            "Training with best score: {score}", score=grid_search.best_score_)
+            "Training with best score: {score}", score=grid_search.best_score_
+        )
 
         return clone(grid_search.best_estimator_)
 
@@ -349,18 +363,16 @@ class Forecaster:
                 ("preprocessor", self._prepare_preprocessor(x_vector_columns)),
                 (
                     "feature_selector",
-                    PFISelector(
-                        estimator=clone(base_estimator)
-                    ),
+                    PFISelector(estimator=clone(base_estimator)),
                 ),
-                (
-                    "model", clone(base_estimator)
-                ),
+                ("model", clone(base_estimator)),
             ],
             memory=self.memory,
         )
 
-    def _prepare_preprocessor(self, x_vector_columns: list[str]) -> ColumnTransformer:
+    def _prepare_preprocessor(
+        self, x_vector_columns: list[str]
+    ) -> ColumnTransformer:
         ct = ColumnTransformer(
             transformers=[
                 (
@@ -374,7 +386,8 @@ class Forecaster:
                     "num",
                     "passthrough",
                     self._extract_used_columns(
-                        self.NUMERIC_FEATURES, x_vector_columns),
+                        self.NUMERIC_FEATURES, x_vector_columns
+                    ),
                 ),
                 (
                     "time",
