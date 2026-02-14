@@ -243,13 +243,21 @@ class METNorwayProvider(WeatherProvider, HTTPClientAsync):
                 temperature=instant.get("air_temperature"),
                 feels_like=None,  # Not available in MET API
                 dew_point=instant.get("dew_point_temperature"),
-                pressure=instant.get("air_pressure_at_sea_level"),
-                humidity=instant.get("relative_humidity"),
-                cloud_coverage=instant.get("cloud_area_fraction"),
+                pressure=int(instant.get("air_pressure_at_sea_level"))
+                if instant.get("air_pressure_at_sea_level") is not None
+                else None,
+                humidity=int(instant.get("relative_humidity"))
+                if instant.get("relative_humidity") is not None
+                else None,
+                cloud_coverage=int(instant.get("cloud_area_fraction"))
+                if instant.get("cloud_area_fraction") is not None
+                else None,
                 visibility=None,  # Not available in MET API
                 uv_index=instant.get("ultraviolet_index_clear_sky"),
                 wind_speed=instant.get("wind_speed"),
-                wind_direction=instant.get("wind_from_direction"),
+                wind_direction=int(instant.get("wind_from_direction"))
+                if instant.get("wind_from_direction") is not None
+                else None,
                 wind_gust=instant.get("wind_speed_of_gust"),
                 precipitation_probability=next_1h.get(
                     "probability_of_precipitation", 0.0

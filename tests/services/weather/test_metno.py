@@ -354,3 +354,33 @@ class TestMETNorwayConvertToUnified:
         # Should use default mapping
         assert result.current.weather_id == 800
         assert result.current.weather_main == "Clear"
+
+    @pytest.mark.asyncio
+    async def test_convert_float_values_to_int(
+        self, mock_service_settings_metno, mock_metno_response
+    ):
+        """Test that float values from MET Norway are converted to integers."""
+        # Set float values that should be converted to int
+        mock_metno_response["properties"]["timeseries"][0]["data"]["instant"][
+            "details"
+        ]["air_pressure_at_sea_level"] = 1005.6
+        mock_metno_response["properties"]["timeseries"][0]["data"]["instant"][
+            "details"
+        ]["relative_humidity"] = 89.3
+        mock_metno_response["properties"]["timeseries"][0]["data"]["instant"][
+            "details"
+        ]["wind_from_direction"] = 11.7
+        mock_metno_response["properties"]["timeseries"][0]["data"]["instant"][
+            "details"
+        ]["cloud_area_fraction"] = 65.4
+
+        provider = METNorwayProvider(mock_service_settings_metno)
+        provider._get = AsyncMock(return_value=mock_metno_response)
+
+        result = await provider.fetch_weather()
+
+        # Verify values are converted to int
+        assert result.current.pressure == 1005
+        assert result.current.humidity == 89
+        assert result.current.wind_direction == 11
+        assert result.current.cloud_coverage == 65
